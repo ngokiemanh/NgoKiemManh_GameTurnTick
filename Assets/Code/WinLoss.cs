@@ -10,6 +10,7 @@ public class WinLoss : MonoBehaviour
     public void OnHomeButton()
     {
         SceneManager.LoadScene(0);
+        Time.timeScale = 1.0f;
     }
 
     public void OnPlayButton()
