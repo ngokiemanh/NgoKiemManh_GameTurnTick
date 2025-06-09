@@ -8,11 +8,12 @@ public class SimpleWinTrigger : MonoBehaviour
     public AudioClip winSound;
 
     private GameModeManager gameModeManager;
+    private ClockwiseGame clockwiseGame; // <-- thêm để tắt âm đồng hồ
 
     private void Start()
     {
-        // Tìm đối tượng chứa GameModeManager trong scene
         gameModeManager = FindObjectOfType<GameModeManager>();
+        clockwiseGame = FindObjectOfType<ClockwiseGame>();
 
         if (gameModeManager == null)
         {
@@ -31,20 +32,19 @@ public class SimpleWinTrigger : MonoBehaviour
             if (winSound != null)
                 AudioSource.PlayClipAtPoint(winSound, Camera.main.transform.position);
 
-            // Gọi trigger win từ GameModeManager để xử lý điểm + UI
+            if (clockwiseGame != null)
+            {
+                var audio = clockwiseGame.GetComponent<AudioSource>();
+                if (audio != null) audio.Stop();
+            }
+
+            Time.timeScale = 0;
+
+            if (winCanvas != null)
+                winCanvas.enabled = true;
+
             if (gameModeManager != null)
-            {
                 gameModeManager.TriggerWin();
-            }
-            else
-            {
-                // Nếu không dùng GameModeManager, fallback: chỉ bật canvas
-                if (winCanvas != null)
-                {
-                    winCanvas.gameObject.SetActive(true);
-                    Debug.Log("You win!");
-                }
-            }
         }
     }
 }
