@@ -19,7 +19,7 @@ public class WinTrigger : MonoBehaviour
     private float lastGlobalBellInteractionTime = -10f;
 
     private GameModeManager gameModeManager;
-    private ClockwiseGame clockwiseGame; // <-- thêm để tìm và tắt âm kim
+    private ClockwiseGame clockwiseGame;
 
     void Start()
     {
@@ -39,17 +39,67 @@ public class WinTrigger : MonoBehaviour
         clockwiseGame = FindObjectOfType<ClockwiseGame>();
     }
 
-    private void OnTriggerEnter2D(Collider2D other)
+    void OnTriggerEnter2D(Collider2D other)
     {
         if (gameEnded) return;
 
+        float currentTime = Time.time;
+
+        // Cooldown toàn bộ chuông
+        if (currentTime - lastGlobalBellInteractionTime < bellCooldown)
+        {
+            Debug.Log("⏱️ Cooldown toàn bộ chuông đang hoạt động...");
+            return;
+        }
+
+        // Kiểm tra bật/tắt chuông
+        for (int i = 0; i < bellOffList.Count; i++)
+        {
+            GameObject off = bellOffList[i];
+            GameObject on = bellOnList[i];
+
+            if (other.gameObject == off)
+            {
+                lastGlobalBellInteractionTime = currentTime;
+
+                off.SetActive(false);
+                if (on != null) on.SetActive(true);
+
+                if (bellOnSound != null)
+                    AudioSource.PlayClipAtPoint(bellOnSound, Camera.main.transform.position);
+
+                Debug.Log($"🔔 Bell {i + 1} bật");
+                return;
+            }
+
+            if (other.gameObject == on)
+            {
+                lastGlobalBellInteractionTime = currentTime;
+
+                on.SetActive(false);
+                if (off != null) off.SetActive(true);
+
+                if (bellOffSound != null)
+                    AudioSource.PlayClipAtPoint(bellOffSound, Camera.main.transform.position);
+
+                Debug.Log($"🔕 Bell {i + 1} tắt");
+                return;
+            }
+        }
+
+        // Kiểm tra thắng
         if (other.CompareTag("Goal"))
         {
+            if (!AllBellsActivated())
+            {
+                Debug.Log("❌ Chưa bật hết chuông → chưa thể thắng");
+                return;
+            }
+
             gameEnded = true;
 
             if (winSound != null)
                 AudioSource.PlayClipAtPoint(winSound, Camera.main.transform.position);
-
             if (clockwiseGame != null)
             {
                 var audio = clockwiseGame.GetComponent<AudioSource>();
@@ -58,11 +108,32 @@ public class WinTrigger : MonoBehaviour
 
             Time.timeScale = 0;
 
-            if (winCanvas != null)
-                winCanvas.enabled = true;
-
             if (gameModeManager != null)
+            {
                 gameModeManager.TriggerWin();
+            }
+            else
+            {
+                if (winCanvas != null)
+                {
+                    winCanvas.gameObject.SetActive(true);
+                    Debug.Log("🎉 YOU WIN!");
+                }
+                else
+                {
+                    Debug.LogWarning("Chưa gán winCanvas!");
+                }
+            }
         }
+    }
+
+    bool AllBellsActivated()
+    {
+        foreach (GameObject bellOn in bellOnList)
+        {
+            if (bellOn == null || !bellOn.activeSelf)
+                return false;
+        }
+        return true;
     }
 }
